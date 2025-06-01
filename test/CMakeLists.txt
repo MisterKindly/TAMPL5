@@ -1,36 +1,27 @@
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG release-1.12.1
-)
-FetchContent_MakeAvailable(googletest)
-
-target_link_libraries(account_test gtest gtest_main)
-
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    option(ENABLE_COVERAGE "Enable coverage reporting" ON)
-    if(ENABLE_COVERAGE)
-        target_compile_options(banking PRIVATE --coverage -fprofile-arcs -ftest-coverage)
-        target_link_libraries(banking --coverage)
-    endif()
+if(BUILD_TESTS)
+    enable_testing()
+    
+    # Подключаем Google Test как subproject
+    add_subdirectory(third-party/gtest)
+    
+    # Включаем директории с заголовками gtest
+    include_directories(
+        ${CMAKE_CURRENT_SOURCE_DIR}../third-party/gtest/googletest/include
+        ${CMAKE_CURRENT_SOURCE_DIR}../third-party/gtest/googlemock/include
+    )
+    
+    # Формируем список тестовых файлов
+    file(GLOB ${PROJECT_NAME}_TEST_SOURCES tests/*.cpp)
+    
+    # Создаем тестовый исполняемый файл
+    add_executable(check ${${PROJECT_NAME}_TEST_SOURCES})
+    
+    # Линкуем с основным проектом и gtest
+    target_link_libraries(check
+        ${PROJECT_NAME}  # Ваша основная библиотека
+        gtest_main       # Основная библиотека gtest
+    )
+    
+    # Регистрируем тест
+    add_test(NAME check COMMAND check)
 endif()
-
-add_executable(account_test AccountTest.cpp)
-target_link_libraries(account_test
-    PRIVATE
-        banking
-        gtest_main
-        gmock
-)
-
-add_executable(transaction_test TransactionTest.cpp)
-target_link_libraries(transaction_test
-    PRIVATE
-        banking
-        gtest_main
-        gmock
-)
-
-gtest_discover_tests(account_test)
-gtest_discover_tests(transaction_test)
