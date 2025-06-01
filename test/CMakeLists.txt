@@ -1,27 +1,22 @@
 if(BUILD_TESTS)
     enable_testing()
     
-    # Подключаем Google Test как subproject
-    add_subdirectory(third-party/gtest)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third-party/gtest)
     
-    # Включаем директории с заголовками gtest
     include_directories(
-        ${CMAKE_CURRENT_SOURCE_DIR}../third-party/gtest/googletest/include
-        ${CMAKE_CURRENT_SOURCE_DIR}../third-party/gtest/googlemock/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../third-party/gtest/googletest/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../third-party/gtest/googlemock/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/../banking 
     )
     
-    # Формируем список тестовых файлов
-    file(GLOB ${PROJECT_NAME}_TEST_SOURCES tests/*.cpp)
+    file(GLOB TEST_SOURCES *.cpp)
     
-    # Создаем тестовый исполняемый файл
-    add_executable(check ${${PROJECT_NAME}_TEST_SOURCES})
+    add_executable(check ${TEST_SOURCES})
     
-    # Линкуем с основным проектом и gtest
     target_link_libraries(check
-        ${PROJECT_NAME}  # Ваша основная библиотека
-        gtest_main       # Основная библиотека gtest
+        banking 
+        gtest_main
     )
     
-    # Регистрируем тест
-    add_test(NAME check COMMAND check)
+    add_test(NAME AllTests COMMAND check)
 endif()
