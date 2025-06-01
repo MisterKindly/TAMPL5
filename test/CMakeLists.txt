@@ -6,6 +6,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
+target_link_libraries(account_test gtest gtest_main)
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     option(ENABLE_COVERAGE "Enable coverage reporting" ON)
     if(ENABLE_COVERAGE)
