@@ -12,7 +12,7 @@ if(BUILD_TESTS)
     
     file(GLOB ${PROJECT_NAME}_TEST_SOURCES test/ *.cpp)
     
-    add_executable(check \${\${PROJECT_NAME}_TEST_SOURCES})
+    add_executable(${TESTS_NAME} ${${PROJECT_NAME}_TEST_SOURCES})
 
     target_link_libraries(check
         banking 
