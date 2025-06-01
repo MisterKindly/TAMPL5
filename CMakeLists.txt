@@ -5,6 +5,10 @@ option(BUILD_TESTS "Build tests" ON)
 
 add_subdirectory(banking)
 
+if(NOT DEFINED TESTS_NAME)
+  set(TESTS_NAME check)
+endif()
+
 if(BUILD_TESTS)
     enable_testing()
     
