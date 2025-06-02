@@ -12,7 +12,7 @@ endif()
 if(BUILD_TESTS)
     enable_testing()
     
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third-party/gtest)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third-party/gtest/googletest)
     
     file(GLOB ${PROJECT_NAME}_TEST_SOURCES test/ *.cpp)
     
