@@ -1,10 +1,9 @@
-name: Minimal CI with Google Tests
+name: CI with Tests and Coverage
 
 on: [push, pull_request]
 
 jobs:
   build_and_test:
-    name: Build and Test (Linux)
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -15,18 +14,19 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y lcov
+        sudo apt-get install -y lcov build-essential
 
-    - name: Configure with CMake
+    - name: Configure CMake
       run: |
         cmake -B build -DBUILD_TESTS=ON -DENABLE_COVERAGE=ON
 
     - name: Build project
-      run: cmake --build build -- -j$(nproc)
+      run: |
+        cmake --build build -- -j$(nproc)
 
     - name: Run Google Tests
       run: |
-        cd build
+        cd build/test
         ./tests --gtest_output=xml:test_results.xml
 
     - name: Generate coverage
@@ -36,15 +36,7 @@ jobs:
         lcov --remove coverage.info '*/test/*' '*/third-party/*' -o filtered.info
         lcov --extract filtered.info '*/banking/*' -o result.info
 
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-results
-        path: build/test_results.xml
-        retention-days: 1
-
     - name: Upload coverage to Coveralls
       uses: coverallsapp/github-action@v2
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
         path-to-lcov: build/result.info
