@@ -18,8 +18,7 @@ jobs:
 
     - name: Configure CMake
       run: |
-        cmake -B build -DBUILD_TESTS=ON -DENABLE_COVERAGE=ON \
-          -DCMAKE_CXX_FLAGS="-Wno-error=maybe-uninitialized"
+        cmake -B build -DBUILD_TESTS=ON -DENABLE_COVERAGE=ON
 
     - name: Build project
       run: |
