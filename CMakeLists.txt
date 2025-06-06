@@ -18,7 +18,7 @@ if(BUILD_TESTS)
     
     file(GLOB TEST_SOURCES "test/*.cpp")
     
-   include_directoies(
+   include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}/third-party/gtest/googlemock/include
 	${CMAKE_CURRENT_SOURCE_DIR}/third-party/gtest/googletest/include
     )
