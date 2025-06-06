@@ -18,12 +18,17 @@ if(BUILD_TESTS)
     
     file(GLOB TEST_SOURCES "test/*.cpp")
     
-    add_executable(tests ${TEST_SOURCES})  # Исправлено имя цели
+   include_directoies(
+	${CMAKE_CURRENT_SOURCE_DIR}/third-party/gtest/googlemock/include
+	${CMAKE_CURRENT_SOURCE_DIR}/third-party/gtest/googletest/include
+    )
+
+    add_executable(tests ${TEST_SOURCES})  
     
-    target_link_libraries(tests  # Исправлено имя цели
+    target_link_libraries(tests 
         banking 
         gtest_main
     )
     
-    add_test(NAME AllTests COMMAND tests)  # Исправлено имя цели
+    add_test(NAME AllTests COMMAND tests) 
 endif()
