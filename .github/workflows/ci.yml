@@ -1,32 +1,50 @@
-name: Tests and Coverage
+name: Minimal CI with Google Tests
 
 on: [push, pull_request]
 
 jobs:
-  build:
+  build_and_test:
+    name: Build and Test (Linux)
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
     - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install -y lcov
-
-    - name: Configure and Build
       run: |
-        cmake -B build -DENABLE_COVERAGE=ON
-        cmake --build build
+        sudo apt-get update
+        sudo apt-get install -y lcov
 
-    - name: Run tests
-      run: ctest --test-dir build --output-on-failure
+    - name: Configure with CMake
+      run: |
+        cmake -B build -DBUILD_TESTS=ON -DENABLE_COVERAGE=ON
+
+    - name: Build project
+      run: cmake --build build -- -j$(nproc)
+
+    - name: Run Google Tests
+      run: |
+        cd build
+        ./tests --gtest_output=xml:test_results.xml
 
     - name: Generate coverage
       run: |
         cd build
         lcov --capture --directory . --output-file coverage.info
-        lcov --remove coverage.info '*/test/*' '*/gtest/*' --output-file coverage.info
+        lcov --remove coverage.info '*/test/*' '*/third-party/*' -o filtered.info
+        lcov --extract filtered.info '*/banking/*' -o result.info
 
-    - name: Upload to Coveralls
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: build/test_results.xml
+        retention-days: 1
+
+    - name: Upload coverage to Coveralls
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: build/coverage.info
+        path-to-lcov: build/result.info
