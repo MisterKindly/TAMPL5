@@ -1,6 +1,6 @@
 #include "Transaction.h"
 #include <stdexcept>
-
+#include <iostream>
 #include "Account.h"
 
 Transaction::Transaction() : fee_(1) {}
