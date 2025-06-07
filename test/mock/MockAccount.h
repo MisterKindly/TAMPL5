@@ -8,7 +8,7 @@ class MockAccount : public Account {
   MockAccount(int id, int balance) : Account(id, balance) {}
   
   
-  virtual ~MockAccount() = default;
+  virtual ~MockAccount();
 
   
   MOCK_METHOD(int, GetBalance, (), (const, override));

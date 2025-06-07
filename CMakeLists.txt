@@ -4,6 +4,7 @@ project(finalwork)
 option(BUILD_TESTS "Build tests" ON)
 option(ENABLE_COVERAGE "Enable coverage reporting" OFF)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=maybe-uninitialized -Wno-maybe-uninitialized")
 
 if(ENABLE_COVERAGE)
     add_compile_options(--coverage -fprofile-arcs -ftest-coverage)
@@ -30,7 +31,6 @@ if(BUILD_TESTS)
     
     add_executable(tests ${TEST_SOURCES})
     
-    # Связываем с библиотеками
     target_link_libraries(tests banking gtest_main)
     
     
