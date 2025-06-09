@@ -15,7 +15,7 @@ class Transaction {
   void Credit(Account& account, int sum);  
   bool Debit(Account& account, int sum);   
 
-  void SaveToDataBase(Account& from, Account& to, int sum);
+  virtual void SaveToDataBase(Account& from, Account& to, int sum);
 
   int fee_;
 };

@@ -5,7 +5,7 @@ class Account {
   Account(int id, int balance);
   virtual ~Account();  
 
-  int GetBalance() const;
+  virtual int GetBalance() const;
   virtual void ChangeBalance(int diff);
   virtual void Lock();
   virtual void Unlock();
