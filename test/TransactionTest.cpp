@@ -76,6 +76,17 @@ TEST(TransactionTests, DatabaseSaving) {
     Transaction tr;
     const int sum = 150;
 
+    EXPECT_CALL(from, Lock()).Times(1);
+    EXPECT_CALL(to, Lock()).Times(1);
+    EXPECT_CALL(from, ChangeBalance(-151)).Times(1);  // 150 + комиссия 1
+    EXPECT_CALL(to, ChangeBalance(150)).Times(1);
+    EXPECT_CALL(from, GetBalance())
+        .WillOnce(Return(49));  // 200 - 151 = 49
+    EXPECT_CALL(to, GetBalance())
+        .WillOnce(Return(400));  // 250 + 150 = 400
+    EXPECT_CALL(from, Unlock()).Times(1);
+    EXPECT_CALL(to, Unlock()).Times(1);
+
     testing::internal::CaptureStdout();
     bool result = tr.Make(from, to, sum);
     std::string output = testing::internal::GetCapturedStdout();
