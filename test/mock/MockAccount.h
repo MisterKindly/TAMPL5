@@ -1,4 +1,6 @@
 #pragma once
+#include <gmock/gmock.h>
+#include "../src/Account.h"
 
 class MockAccount : public Account {
 public:
