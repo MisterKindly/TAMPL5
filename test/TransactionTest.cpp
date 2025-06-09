@@ -57,40 +57,31 @@ TEST_F(TransactionTest, MakeSmallSum) {
     EXPECT_THROW(tr.Make(*mockFrom, *mockTo, 99), std::logic_error);
 }
 
-TEST_F(TransactionTest, MakeInsufficientFunds) {
+TEST(TransactionTest, MakeInsufficientFunds) {
+    MockAccount from(1, 100);
+    MockAccount to(2, 200);
     Transaction tr;
-    
-    EXPECT_FALSE(tr.Make(*mockFrom, *mockTo, 300));
-    
-    
-    EXPECT_EQ(realFrom->GetBalance(), 100); 
-    EXPECT_EQ(realTo->GetBalance(), 200);   
+
+    ON_CALL(from, GetBalance()).WillByDefault(Return(100));
+    ON_CALL(to, GetBalance()).WillByDefault(Return(200));
+
+    EXPECT_CALL(from, ChangeBalance(-301)).Times(0);  
+    EXPECT_CALL(to, ChangeBalance(300)).Times(1);    
+    EXPECT_CALL(to, ChangeBalance(-300)).Times(1);   
+
+    EXPECT_FALSE(tr.Make(from, to, 300));
 }
 
-TEST_F(TransactionTest, MakeSuccess) {
-    delete realFrom;
-    delete realTo;
-    delete mockFrom;
-    delete mockTo;
-    
-    realFrom = new Account(1, 1000);
-    realTo = new Account(2, 2000);
-    mockFrom = new NiceMock<MockAccount>(1, 1000);
-    mockTo = new NiceMock<MockAccount>(2, 2000);
-    
-    ON_CALL(*mockFrom, Lock()).WillByDefault(Invoke(realFrom, &Account::Lock));
-    ON_CALL(*mockFrom, Unlock()).WillByDefault(Invoke(realFrom, &Account::Unlock));
-    ON_CALL(*mockFrom, ChangeBalance(_)).WillByDefault(Invoke(realFrom, &Account::ChangeBalance));
-    ON_CALL(*mockFrom, GetBalance()).WillByDefault(Invoke(realFrom, &Account::GetBalance));
-    
-    ON_CALL(*mockTo, Lock()).WillByDefault(Invoke(realTo, &Account::Lock));
-    ON_CALL(*mockTo, Unlock()).WillByDefault(Invoke(realTo, &Account::Unlock));
-    ON_CALL(*mockTo, ChangeBalance(_)).WillByDefault(Invoke(realTo, &Account::ChangeBalance));
-    ON_CALL(*mockTo, GetBalance()).WillByDefault(Invoke(realTo, &Account::GetBalance));
-    
+TEST(TransactionTest, MakeSuccess) {
+    MockAccount from(1, 1000);
+    MockAccount to(2, 2000);
     Transaction tr;
-    EXPECT_TRUE(tr.Make(*mockFrom, *mockTo, 300));
-    
-    EXPECT_EQ(realFrom->GetBalance(), 1000 - 300 - tr.fee()); 
-EXPECT_EQ(realTo->GetBalance(), 2000 + 300);             
+
+    ON_CALL(from, GetBalance()).WillByDefault(Return(1000));
+    ON_CALL(to, GetBalance()).WillByDefault(Return(2000));
+
+    EXPECT_CALL(from, ChangeBalance(-301)).Times(1);  
+    EXPECT_CALL(to, ChangeBalance(300)).Times(1);     
+
+    EXPECT_TRUE(tr.Make(from, to, 300));
 }
