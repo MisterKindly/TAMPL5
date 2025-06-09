@@ -5,7 +5,7 @@
 class MockAccount : public Account {
  public:
   
-  MockAccount(int id, int balance) : Account(id, balance) {}
+  MockAccount(int id, int balance) {}
   
   
   virtual ~MockAccount();

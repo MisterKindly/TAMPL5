@@ -24,7 +24,7 @@ if(BUILD_TESTS)
     add_subdirectory(third-party/gtest EXCLUDE_FROM_ALL)
     
     
-    file(GLOB TEST_SOURCES "test/*.cpp")
+    file(GLOB TEST_SOURCES "test/*.cpp" "test/mock/*.cpp")
     
     
     add_executable(tests ${TEST_SOURCES})
