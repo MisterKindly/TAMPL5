@@ -39,18 +39,18 @@ TEST(TransactionTest, MakeInsufficientFunds) {
 
     {
         testing::InSequence seq;
-        EXPECT_CALL(from, Lock()).Times(testing::Exactly(1));
-        EXPECT_CALL(from, GetBalance()).Times(testing::Exactly(1));
-        EXPECT_CALL(from, Unlock()).Times(testing::Exactly(1));
+        EXPECT_CALL(from, Lock()).Times(Exactly(1));
+        EXPECT_CALL(from, GetBalance()).Times(Exactly(1));
+        EXPECT_CALL(from, Unlock()).Times(Exactly(1));
     }
 
     {
         testing::InSequence seq;
-        EXPECT_CALL(to, Lock()).Times(testing::Exactly(1));
-        EXPECT_CALL(to, ChangeBalance(300)).Times(testing::Exactly(1));  
-        EXPECT_CALL(to, ChangeBalance(-300)).Times(testing::Exactly(1)); 
-        EXPECT_CALL(to, GetBalance()).Times(testing::Exactly(1));        
-        EXPECT_CALL(to, Unlock()).Times(testing::Exactly(1));
+        EXPECT_CALL(to, Lock()).Times(Exactly(1));
+        EXPECT_CALL(to, ChangeBalance(300)).Times(Exactly(1));
+        EXPECT_CALL(to, ChangeBalance(-300)).Times(Exactly(1));
+        EXPECT_CALL(to, GetBalance()).Times(Exactly(1));
+        EXPECT_CALL(to, Unlock()).Times(Exactly(1));
     }
 
     EXPECT_CALL(from, ChangeBalance(_)).Times(0);
@@ -68,19 +68,19 @@ TEST(TransactionTest, MakeSuccess) {
 
     {
         testing::InSequence seq;
-        EXPECT_CALL(from, Lock()).Times(testing::Exactly(1));
-        EXPECT_CALL(from, GetBalance()).Times(testing::Exactly(1));
-        EXPECT_CALL(from, ChangeBalance(-301)).Times(testing::Exactly(1)); 
-        EXPECT_CALL(from, GetBalance()).Times(testing::Exactly(1));        
-        EXPECT_CALL(from, Unlock()).Times(testing::Exactly(1));
+        EXPECT_CALL(from, Lock()).Times(Exactly(1));
+        EXPECT_CALL(from, GetBalance()).Times(Exactly(1));
+        EXPECT_CALL(from, ChangeBalance(-301)).Times(Exactly(1));
+        EXPECT_CALL(from, GetBalance()).Times(Exactly(1));
+        EXPECT_CALL(from, Unlock()).Times(Exactly(1));
     }
 
     {
         testing::InSequence seq;
-        EXPECT_CALL(to, Lock()).Times(testing::Exactly(1));
-        EXPECT_CALL(to, ChangeBalance(300)).Times(testing::Exactly(1)); 
-        EXPECT_CALL(to, GetBalance()).Times(testing::Exactly(1));       
-        EXPECT_CALL(to, Unlock()).Times(testing::Exactly(1));
+        EXPECT_CALL(to, Lock()).Times(Exactly(1));
+        EXPECT_CALL(to, ChangeBalance(300)).Times(Exactly(1));
+        EXPECT_CALL(to, GetBalance()).Times(Exactly(1));
+        EXPECT_CALL(to, Unlock()).Times(Exactly(1));
     }
 
     EXPECT_TRUE(tr.Make(from, to, 300));
