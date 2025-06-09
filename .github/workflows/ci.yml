@@ -14,46 +14,41 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y lcov build-essential g++-12
+        sudo apt-get install -y lcov build-essential cmake
 
     - name: Configure CMake
       run: |
-        mkdir -p build
         cmake -B build -DBUILD_TESTS=ON -DENABLE_COVERAGE=ON
 
     - name: Build project
       run: |
-        cmake --build build --config Release -- -j$(nproc)
+        cmake --build build -- -j$(nproc)
 
     - name: Run tests
       run: |
-        cd build
-        ./test/tests --gtest_output=xml:test_results.xml
+        ./build/tests --gtest_output=xml:test_results.xml
 
     - name: Generate coverage
       run: |
-        cd build
-        
-        lcov --capture --directory . --output-file coverage.info
+        lcov --capture --directory build --output-file coverage.info
         lcov --remove coverage.info '*/test/*' '*/third-party/*' '*/mock/*' -o filtered.info
-        lcov --extract filtered.info '*/banking/*' '*/src/*' -o result.info
-        
+        lcov --extract filtered.info '*/banking/*' -o result.info
         genhtml result.info --output-directory coverage-report
 
     - name: Upload coverage to Coveralls
       uses: coverallsapp/github-action@v2
       with:
-        path-to-lcov: build/result.info
+        path-to-lcov: result.info
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
       with:
         name: test-results
-        path: build/test_results.xml
+        path: test_results.xml
 
     - name: Upload coverage report
       uses: actions/upload-artifact@v4
       with:
         name: coverage-report
-        path: build/coverage-report
+        path: coverage-report
