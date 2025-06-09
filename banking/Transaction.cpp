@@ -1,7 +1,22 @@
 #include "Transaction.h"
-#include <stdexcept>
+
+#include <cassert>
 #include <iostream>
+#include <stdexcept>
+
 #include "Account.h"
+
+namespace {
+// RAII
+struct Guard {
+  Guard(Account& account) : account_(&account) { account_->Lock(); }
+
+  ~Guard() { account_->Unlock(); }
+
+ private:
+  Account* account_;
+};
+}  // namespace
 
 Transaction::Transaction() : fee_(1) {}
 
@@ -16,7 +31,12 @@ bool Transaction::Make(Account& from, Account& to, int sum) {
 
   if (fee_ * 2 > sum) return false;
 
-  bool success = Debit(to, sum + fee_);
+  Guard guard_from(from);
+  Guard guard_to(to);
+
+  Credit(to, sum);
+
+  bool success = Debit(from, sum + fee_);
   if (!success) to.ChangeBalance(-sum);
 
   SaveToDataBase(from, to, sum);
@@ -24,11 +44,13 @@ bool Transaction::Make(Account& from, Account& to, int sum) {
 }
 
 void Transaction::Credit(Account& accout, int sum) {
- accout.ChangeBalance(sum);
+  assert(sum > 0);
+  accout.ChangeBalance(sum);
 }
 
 bool Transaction::Debit(Account& accout, int sum) {
- if (accout.GetBalance() > sum) {
+  assert(sum > 0);
+  if (accout.GetBalance() > sum) {
     accout.ChangeBalance(-sum);
     return true;
   }
