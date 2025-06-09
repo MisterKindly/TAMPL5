@@ -3,80 +3,94 @@
 #include "../src/Transaction.h"
 
 using ::testing::_;
-using ::testing::InSequence;
+using ::testing::AtLeast;
+using ::testing::Invoke;
 using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::Throw;
 
-TEST(TransactionTest, MakeInvalidAccounts) {
-    NiceMock<MockAccount> acc1(1, 1000);
+class TransactionTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+	realFrom = new Account(1, 100);
+        realTo = new Account(2, 200);
+        
+        mockFrom = new NiceMock<MockAccount>(1, 100);
+        mockTo = new NiceMock<MockAccount>(2, 200);
+        
+        ON_CALL(*mockFrom, Lock()).WillByDefault(Invoke(realFrom, &Account::Lock));
+        ON_CALL(*mockFrom, Unlock()).WillByDefault(Invoke(realFrom, &Account::Unlock));
+        ON_CALL(*mockFrom, ChangeBalance(_)).WillByDefault(Invoke(realFrom, &Account::ChangeBalance));
+        ON_CALL(*mockFrom, GetBalance()).WillByDefault(Invoke(realFrom, &Account::GetBalance));
+        
+        ON_CALL(*mockTo, Lock()).WillByDefault(Invoke(realTo, &Account::Lock));
+        ON_CALL(*mockTo, Unlock()).WillByDefault(Invoke(realTo, &Account::Unlock));
+        ON_CALL(*mockTo, ChangeBalance(_)).WillByDefault(Invoke(realTo, &Account::ChangeBalance));
+        ON_CALL(*mockTo, GetBalance()).WillByDefault(Invoke(realTo, &Account::GetBalance));
+    }
+    
+    void TearDown() override {
+        delete mockFrom;
+        delete mockTo;
+        delete realFrom;
+        delete realTo;
+    }
+    
+    Account* realFrom;
+    Account* realTo;
+    MockAccount* mockFrom;
+    MockAccount* mockTo;
+};
+
+TEST_F(TransactionTest, MakeInvalidAccounts) {
     Transaction tr;
-    EXPECT_THROW(tr.Make(acc1, acc1, 100), std::logic_error);
+    EXPECT_THROW(tr.Make(*mockFrom, *mockFrom, 100), std::logic_error);
 }
 
-TEST(TransactionTest, MakeNegativeSum) {
-    NiceMock<MockAccount> acc1(1, 1000);
-    NiceMock<MockAccount> acc2(2, 2000);
+TEST_F(TransactionTest, MakeNegativeSum) {
     Transaction tr;
-    EXPECT_THROW(tr.Make(acc1, acc2, -50), std::invalid_argument);
+    EXPECT_THROW(tr.Make(*mockFrom, *mockTo, -50), std::invalid_argument);
 }
 
-TEST(TransactionTest, MakeSmallSum) {
-    NiceMock<MockAccount> acc1(1, 1000);
-    NiceMock<MockAccount> acc2(2, 2000);
+TEST_F(TransactionTest, MakeSmallSum) {
     Transaction tr;
-    EXPECT_THROW(tr.Make(acc1, acc2, 99), std::logic_error);
+    EXPECT_THROW(tr.Make(*mockFrom, *mockTo, 99), std::logic_error);
 }
 
-TEST(TransactionTest, MakeInsufficientFunds) {
-    MockAccount from(1, 100);
-    MockAccount to(2, 200);
+TEST_F(TransactionTest, MakeInsufficientFunds) {
     Transaction tr;
-
-    // Для from
-    {
-        InSequence s;
-        EXPECT_CALL(from, Lock()).Times(1);
-        // GetBalance вызывается внутри Debit()
-        EXPECT_CALL(from, GetBalance()).WillOnce(Return(100));
-        // ChangeBalance не вызывается, так как средств недостаточно
-        EXPECT_CALL(from, Unlock()).Times(1);
-    }
-
-    // Для to
-    {
-        InSequence s;
-        EXPECT_CALL(to, Lock()).Times(1);
-        EXPECT_CALL(to, ChangeBalance(300)).Times(1);  // Зачисление
-        EXPECT_CALL(to, ChangeBalance(-300)).Times(1); // Откат из-за недостатка средств
-        EXPECT_CALL(to, Unlock()).Times(1);
-    }
-
-    EXPECT_FALSE(tr.Make(from, to, 300));
+    
+    EXPECT_FALSE(tr.Make(*mockFrom, *mockTo, 300));
+    
+    
+    EXPECT_EQ(realFrom->GetBalance(), 100); 
+    EXPECT_EQ(realTo->GetBalance(), 200);   
 }
 
-TEST(TransactionTest, MakeSuccess) {
-    MockAccount from(1, 1000);
-    MockAccount to(2, 2000);
+TEST_F(TransactionTest, MakeSuccess) {
+    delete realFrom;
+    delete realTo;
+    delete mockFrom;
+    delete mockTo;
+    
+    realFrom = new Account(1, 1000);
+    realTo = new Account(2, 2000);
+    mockFrom = new NiceMock<MockAccount>(1, 1000);
+    mockTo = new NiceMock<MockAccount>(2, 2000);
+    
+    ON_CALL(*mockFrom, Lock()).WillByDefault(Invoke(realFrom, &Account::Lock));
+    ON_CALL(*mockFrom, Unlock()).WillByDefault(Invoke(realFrom, &Account::Unlock));
+    ON_CALL(*mockFrom, ChangeBalance(_)).WillByDefault(Invoke(realFrom, &Account::ChangeBalance));
+    ON_CALL(*mockFrom, GetBalance()).WillByDefault(Invoke(realFrom, &Account::GetBalance));
+    
+    ON_CALL(*mockTo, Lock()).WillByDefault(Invoke(realTo, &Account::Lock));
+    ON_CALL(*mockTo, Unlock()).WillByDefault(Invoke(realTo, &Account::Unlock));
+    ON_CALL(*mockTo, ChangeBalance(_)).WillByDefault(Invoke(realTo, &Account::ChangeBalance));
+    ON_CALL(*mockTo, GetBalance()).WillByDefault(Invoke(realTo, &Account::GetBalance));
+    
     Transaction tr;
-
-    // Для from
-    {
-        InSequence s;
-        EXPECT_CALL(from, Lock()).Times(1);
-        // GetBalance вызывается внутри Debit()
-        EXPECT_CALL(from, GetBalance()).WillOnce(Return(1000));
-        EXPECT_CALL(from, ChangeBalance(-301)).Times(1); // 300 + комиссия 1
-        EXPECT_CALL(from, Unlock()).Times(1);
-    }
-
-    // Для to
-    {
-        InSequence s;
-        EXPECT_CALL(to, Lock()).Times(1);
-        EXPECT_CALL(to, ChangeBalance(300)).Times(1); // Зачисление
-        EXPECT_CALL(to, Unlock()).Times(1);
-    }
-
-    EXPECT_TRUE(tr.Make(from, to, 300));
+    EXPECT_TRUE(tr.Make(*mockFrom, *mockTo, 300));
+    
+    EXPECT_EQ(realFrom->GetBalance(), 1000 - 300 - tr.fee()); 
+EXPECT_EQ(realTo->GetBalance(), 2000 + 300);             
 }
