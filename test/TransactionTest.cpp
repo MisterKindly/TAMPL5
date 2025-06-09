@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "Account.h"
-#include "Transaction.h"
+#include "../src/Account.h"
+#include "../src/Transaction.h"
 #include "mock/MockAccount.h"
 
 using ::testing::_;
