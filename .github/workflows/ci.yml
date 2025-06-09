@@ -19,29 +19,26 @@ jobs:
     - name: Configure CMake
       run: |
         mkdir -p build
-        cd build
-        cmake -DBUILD_TESTS=ON -DENABLE_COVERAGE=ON ..
-        cd ..
+        cmake -B build -DBUILD_TESTS=ON -DENABLE_COVERAGE=ON
 
     - name: Build project
       run: |
-        cd build
-        make -j$(nproc)
+        cmake --build build --config Release -- -j$(nproc)
 
-    - name: Run Google Tests
+    - name: Run tests
       run: |
-        cd build/test
-        ./tests --gtest_output=xml:test_results.xml
+        cd build
+        ./test/tests --gtest_output=xml:test_results.xml
 
     - name: Generate coverage
       run: |
         cd build
-        ./test/tests
         
         lcov --capture --directory . --output-file coverage.info
         lcov --remove coverage.info '*/test/*' '*/third-party/*' '*/mock/*' -o filtered.info
         lcov --extract filtered.info '*/banking/*' '*/src/*' -o result.info
         
+        genhtml result.info --output-directory coverage-report
 
     - name: Upload coverage to Coveralls
       uses: coverallsapp/github-action@v2
@@ -50,13 +47,13 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-results
-        path: build/test/test_results.xml
+        path: build/test_results.xml
 
     - name: Upload coverage report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: coverage-report
         path: build/coverage-report
