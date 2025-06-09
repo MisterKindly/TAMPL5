@@ -1,18 +1,28 @@
 #pragma once
-#include "../src/Account.h"
-#include <gmock/gmock.h>
 
 class MockAccount : public Account {
- public:
-  
-  MockAccount(int id, int balance);
-  
-  
-  virtual ~MockAccount();
+public:
+    MockAccount(int id, int balance);
+    virtual ~MockAccount();
 
-  
-  MOCK_METHOD(int, GetBalance, (), (const, override));
-  MOCK_METHOD(void, ChangeBalance, (int diff), (override));
-  MOCK_METHOD(void, Lock, (), (override));
-  MOCK_METHOD(void, Unlock, (), (override));
+    int GetBalance() const override { 
+        return GetBalanceMock(); 
+    }
+    
+    void ChangeBalance(int diff) override { 
+        ChangeBalanceMock(diff); 
+    }
+    
+    void Lock() override { 
+        LockMock(); 
+    }
+    
+    void Unlock() override { 
+        UnlockMock(); 
+    }
+
+    MOCK_METHOD(int, GetBalanceMock, (), (const));
+    MOCK_METHOD(void, ChangeBalanceMock, (int diff));
+    MOCK_METHOD(void, LockMock, ());
+    MOCK_METHOD(void, UnlockMock, ());
 };
