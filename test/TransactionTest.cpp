@@ -1,50 +1,85 @@
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+
+#include "Account.h"
+#include "Transaction.h"
 #include "mock/MockAccount.h"
-#include "../src/Transaction.h"
 
 using ::testing::_;
+using ::testing::AtLeast;
 using ::testing::Return;
+using ::testing::Ref;
 
-TEST(TransactionTest, MakeInvalidAccounts) {
+class MockTransaction : public Transaction {
+public:
+    MOCK_METHOD(void, SaveToDataBase, (Account& from, Account& to, int sum), (override));
+};
+
+TEST(TransactionTests, MakeInvalidAccounts) {
     MockAccount acc1(1, 1000);
     Transaction tr;
     EXPECT_THROW(tr.Make(acc1, acc1, 100), std::logic_error);
 }
 
-TEST(TransactionTest, MakeNegativeSum) {
+TEST(TransactionTests, MakeNegativeSum) {
     MockAccount acc1(1, 1000);
     MockAccount acc2(2, 2000);
     Transaction tr;
     EXPECT_THROW(tr.Make(acc1, acc2, -50), std::invalid_argument);
 }
 
-TEST(TransactionTest, MakeSmallSum) {
+TEST(TransactionTests, MakeSmallSum) {
     MockAccount acc1(1, 1000);
     MockAccount acc2(2, 2000);
     Transaction tr;
     EXPECT_THROW(tr.Make(acc1, acc2, 99), std::logic_error);
 }
 
-TEST(TransactionTest, MakeInsufficientFunds) {
+TEST(TransactionTests, MakeSuccess) {
+    MockAccount from(1, 1000);
+    MockAccount to(2, 2000);
+    MockTransaction tr;
+
+    EXPECT_CALL(from, Lock()).Times(1);
+    EXPECT_CALL(to, Lock()).Times(1);
+    EXPECT_CALL(to, ChangeBalance(300)).Times(1);
+    EXPECT_CALL(from, ChangeBalance(-301)).Times(1);
+    EXPECT_CALL(from, GetBalance()).Times(1).WillOnce(Return(1000));
+    EXPECT_CALL(from, Unlock()).Times(1);
+    EXPECT_CALL(to, Unlock()).Times(1);
+    EXPECT_CALL(tr, SaveToDataBase(Ref(from), Ref(to), 300)).Times(1);
+
+    EXPECT_TRUE(tr.Make(from, to, 300));
+}
+
+TEST(TransactionTests, MakeInsufficientFunds) {
     MockAccount from(1, 100);
     MockAccount to(2, 200);
-    Transaction tr;
+    MockTransaction tr;
 
-    EXPECT_CALL(from, GetBalanceMock()).WillOnce(Return(100));
-    EXPECT_CALL(to, ChangeBalanceMock(300)).Times(1);
-    EXPECT_CALL(to, ChangeBalanceMock(-300)).Times(1);
+    EXPECT_CALL(from, Lock()).Times(1);
+    EXPECT_CALL(to, Lock()).Times(1);
+    EXPECT_CALL(to, ChangeBalance(300)).Times(1);
+    EXPECT_CALL(to, ChangeBalance(-300)).Times(1);
+    EXPECT_CALL(from, ChangeBalance(_)).Times(0);
+    EXPECT_CALL(from, GetBalance()).Times(1).WillOnce(Return(100));
+    EXPECT_CALL(from, Unlock()).Times(1);
+    EXPECT_CALL(to, Unlock()).Times(1);
+    EXPECT_CALL(tr, SaveToDataBase(Ref(from), Ref(to), 300)).Times(1);
 
     EXPECT_FALSE(tr.Make(from, to, 300));
 }
 
-TEST(TransactionTest, MakeSuccess) {
-    MockAccount from(1, 1000);
-    MockAccount to(2, 2000);
+TEST(TransactionTests, DatabaseSaving) {
+    MockAccount from(1, 200);
+    MockAccount to(2, 250);
     Transaction tr;
+    const int sum = 150;
 
-    EXPECT_CALL(from, GetBalanceMock()).WillOnce(Return(1000));
-    EXPECT_CALL(from, ChangeBalanceMock(-301)).Times(1);
-    EXPECT_CALL(to, ChangeBalanceMock(300)).Times(1);
+    testing::internal::CaptureStdout();
+    bool result = tr.Make(from, to, sum);
+    std::string output = testing::internal::GetCapturedStdout();
 
-    EXPECT_TRUE(tr.Make(from, to, 300));
+    EXPECT_TRUE(result);
+    EXPECT_EQ(output, "1 send to 2 $150\nBalance 1 is 49\nBalance 2 is 400\n");
 }
