@@ -71,21 +71,40 @@ TEST(TransactionTests, MakeInsufficientFunds) {
 }
 
 TEST(TransactionTests, DatabaseSaving) {
-    MockAccount from(1, 200);
-    MockAccount to(2, 250);
-    Transaction tr;
-    const int sum = 150;
+    const int initialFrom = 200;
+    const int initialTo = 250;
+    const int amount = 150;
+    const int fee = 1;
 
-    EXPECT_CALL(from, Lock()).Times(1);
-    EXPECT_CALL(to, Lock()).Times(1);
-    EXPECT_CALL(from, ChangeBalance(-151)).Times(1);  // 150 + комиссия 1
-    EXPECT_CALL(to, ChangeBalance(150)).Times(1);
+    MockAccount from(1, initialFrom);
+    MockAccount to(2, initialTo);
+    Transaction tr;
+
+    testing::Sequence seq;
+    
+    EXPECT_CALL(from, Lock()).InSequence(seq);
+    EXPECT_CALL(to, Lock()).InSequence(seq);
+    
     EXPECT_CALL(from, GetBalance())
-        .WillOnce(Return(49));  // 200 - 151 = 49
+        .InSequence(seq)
+        .WillOnce(Return(initialFrom)); 
+    
+    EXPECT_CALL(from, ChangeBalance(-(amount + fee))
+        .InSequence(seq);
+    
+    EXPECT_CALL(to, ChangeBalance(amount))
+        .InSequence(seq);
+    
+    EXPECT_CALL(from, GetBalance())
+        .InSequence(seq)
+        .WillOnce(Return(initialFrom - amount - fee));  // 49
+    
     EXPECT_CALL(to, GetBalance())
-        .WillOnce(Return(400));  // 250 + 150 = 400
-    EXPECT_CALL(from, Unlock()).Times(1);
-    EXPECT_CALL(to, Unlock()).Times(1);
+        .InSequence(seq)
+        .WillOnce(Return(initialTo + amount));  // 400
+    
+    EXPECT_CALL(to, Unlock()).InSequence(seq);
+    EXPECT_CALL(from, Unlock()).InSequence(seq);
 
     testing::internal::CaptureStdout();
     bool result = tr.Make(from, to, sum);
