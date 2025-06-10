@@ -4,7 +4,19 @@ on: [push, pull_request]
 
 jobs:
   build_and_test:
+    name: Build and Test on Linux
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: gcc
+            cpp_compiler: g++
+            coverage: true
+          - compiler: clang
+            cpp_compiler: clang++
+            coverage: false
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -14,38 +26,74 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y lcov build-essential cmake
+        sudo apt-get install -y build-essential cmake lcov clang
+        
+        wget https://github.com/linux-test-project/lcov/releases/download/v2.0/lcov-2.0.tar.gz
+        tar xf lcov-2.0.tar.gz
+        sudo make -C lcov-2.0 install
 
     - name: Configure CMake
       run: |
-        cmake -B build -DBUILD_TESTS=ON -DENABLE_COVERAGE=ON
+        cmake -H. -B build-${{matrix.compiler}} \
+          -D CMAKE_CXX_COMPILER=${{matrix.cpp_compiler}} \
+          -D CMAKE_C_COMPILER=${{matrix.compiler}} \
+          -D BUILD_TESTS=ON \
+          -D TESTS_NAME=tests \
+          -D ENABLE_COVERAGE=${{matrix.coverage}} \
+          -D CMAKE_CXX_FLAGS="${{ matrix.coverage && '--coverage -fprofile-abs-path' || '' }}" \
+          -D CMAKE_EXE_LINKER_FLAGS="${{ matrix.coverage && '--coverage' || '' }}"
 
     - name: Build project
       run: |
-        cmake --build build -- -j$(nproc)
+        cmake --build build-${{matrix.compiler}} -- -j$(nproc)
 
     - name: Run tests
       run: |
-        ./build/tests --gtest_output=xml:test_results.xml
+        cd build-${{matrix.compiler}}
+        ./tests --gtest_output=xml:test_results.xml
 
-    - name: Generate coverage
+    - name: Generate coverage (for GCC)
+      if: matrix.coverage
       run: |
-        lcov --capture --directory build --output-file coverage.info
-        lcov --remove coverage.info '*/test/*' '*/third-party/*' '*/mock/*' -o filtered.info
-        lcov --extract filtered.info '*/banking/*' -o result.info
-        genhtml result.info --output-directory coverage-report
+        cd build-${{matrix.compiler}}
+        lcov --ignore-errors mismatch --ignore-errors gcov,gcov --capture --directory . -o coverage.info
+        lcov --extract coverage.info "*/src/*" -o filtered.info
+        lcov --list filtered.info
 
-    - name: Upload coverage to Coveralls
-      uses: coverallsapp/github-action@v2
+    - name: Upload coverage
+      if: matrix.coverage
+      uses: actions/upload-artifact@v4
       with:
-        path-to-lcov: result.info
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        name: coverage-${{matrix.compiler}}
+        path: build-${{matrix.compiler}}/filtered.info
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
       with:
-        name: test-results
-        path: test_results.xml
+        name: test-results-${{matrix.compiler}}
+        path: build-${{matrix.compiler}}/test_results.xml
+
+  coverage_report:
+    name: Generate Coverage Report
+    needs: [build_and_test]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download coverage artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: coverage-gcc
+        path: coverage-data
+
+    - name: Generate HTML report
+      run: |
+        genhtml coverage-data/filtered.info --output-directory coverage-report --ignore-errors unmapped,source
+
+    - name: Upload to Coveralls
+      uses: coverallsapp/github-action@v2
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path-to-lcov: coverage-data/filtered.info
 
     - name: Upload coverage report
       uses: actions/upload-artifact@v4
