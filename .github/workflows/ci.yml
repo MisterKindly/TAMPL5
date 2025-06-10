@@ -74,37 +74,44 @@ jobs:
         name: test-results-${{matrix.compiler}}
         path: build-${{matrix.compiler}}/test_results.xml
 
-  coverage_report:
-    name: Generate Coverage Report
-    needs: [build_and_test]
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-    - name: Download coverage artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: coverage-gcc
-        path: coverage-data
+coverage_report:
+  name: Generate Coverage Report
+  needs: [build_and_test]
+  if: github.ref == 'refs/heads/main'
+  runs-on: ubuntu-latest
+  steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
+    with:
+      submodules: recursive
+      path: src
 
-    - name: Install report dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y lcov
-        genhtml --version || echo "genhtml not found"
-        lcov --version
+  - name: Download coverage artifacts
+    uses: actions/download-artifact@v4
+    with:
+      name: coverage-gcc
+      path: coverage-data
 
-    - name: Generate HTML report
-      run: |
-        genhtml coverage-data/filtered.info --output-directory coverage-report --ignore-errors unmapped,source
+  - name: Install report dependencies
+    run: |
+      sudo apt-get update
+      sudo apt-get install -y lcov
 
-    - name: Upload to Coveralls
-      uses: coverallsapp/github-action@v2
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: coverage-data/filtered.info
+  - name: Generate HTML report
+    run: |
+      genhtml coverage-data/filtered.info \
+              --output-directory coverage-report \
+              --source-directory src \
+              --ignore-errors unmapped,source \
+              --prefix $(pwd)
+    -name: Upload to Coveralls
+    uses: coverallsapp/github-action@v2
+    with:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+      path-to-lcov: coverage-data/filtered.info
 
-    - name: Upload coverage report
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-report
-        path: coverage-report
+  - name: Upload coverage report
+    uses: actions/upload-artifact@v4
+    with:
+      name: coverage-report
+      path: coverage-report
