@@ -26,8 +26,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential cmake lcov clang
-        
+        sudo apt-get install -y build-essential cmake clang
         sudo apt-get install -y libperlio-gzip-perl libjson-perl
         wget https://github.com/linux-test-project/lcov/releases/download/v2.0/lcov-2.0.tar.gz
         tar xf lcov-2.0.tar.gz
@@ -104,7 +103,8 @@ jobs:
                 --source-directory src \
                 --ignore-errors unmapped,source \
                 --prefix $(pwd)
-      -name: Upload to Coveralls
+
+    - name: Upload to Coveralls
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
