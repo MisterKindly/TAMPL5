@@ -27,7 +27,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential cmake clang
-        sudo apt-get install -y libperlio-gzip-perl libjson-perl
+        sudo apt-get install -y libperlio-tiny-perl libperlio-gzip-perl libjson-perl
         wget https://github.com/linux-test-project/lcov/releases/download/v2.0/lcov-2.0.tar.gz
         tar xf lcov-2.0.tar.gz
         sudo make -C lcov-2.0 install
@@ -95,7 +95,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y lcov
-
+        sudo apt-get install -y libcapture-tiny-perl libperlio-gzip-perl libjson-perl
     - name: Generate HTML report
       run: |
         genhtml coverage-data/filtered.info \
