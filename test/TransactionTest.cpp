@@ -89,7 +89,7 @@ TEST(TransactionTests, DatabaseSaving) {
         .InSequence(seq)
         .WillOnce(Return(initialFrom)); 
     
-    EXPECT_CALL(from, ChangeBalance(-(amount + fee))
+    EXPECT_CALL(from, ChangeBalance(-(amount + fee)))
         .InSequence(seq);
     
     EXPECT_CALL(to, ChangeBalance(amount))
@@ -107,7 +107,7 @@ TEST(TransactionTests, DatabaseSaving) {
     EXPECT_CALL(from, Unlock()).InSequence(seq);
 
     testing::internal::CaptureStdout();
-    bool result = tr.Make(from, to, sum);
+    bool result = tr.Make(from, to, amount);
     std::string output = testing::internal::GetCapturedStdout();
 
     EXPECT_TRUE(result);
