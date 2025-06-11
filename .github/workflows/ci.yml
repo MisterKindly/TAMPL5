@@ -28,8 +28,10 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential cmake lcov clang
         
-        sudo apt-get install -y libperlio-gzip-perl libjson-perl libcapture-tiny-perl
-
+        sudo apt-get install -y libperlio-gzip-perl libjson-perl
+        wget https://github.com/linux-test-project/lcov/releases/download/v2.0/lcov-2.0.tar.gz
+        tar xf lcov-2.0.tar.gz
+        sudo make -C lcov-2.0 install
     - name: Configure CMake
       run: |
         cmake -H. -B build-${{matrix.compiler}} \
@@ -40,29 +42,20 @@ jobs:
           -D ENABLE_COVERAGE=${{matrix.coverage}} \
           -D CMAKE_CXX_FLAGS="${{ matrix.coverage && '--coverage -fprofile-abs-path' || '' }}" \
           -D CMAKE_EXE_LINKER_FLAGS="${{ matrix.coverage && '--coverage' || '' }}"
-
     - name: Build project
       run: |
         cmake --build build-${{matrix.compiler}} -- -j$(nproc)
-
     - name: Run tests
       run: |
         cd build-${{matrix.compiler}}
         ./tests --gtest_output=xml:test_results.xml
-
     - name: Generate coverage (for GCC)
       if: matrix.coverage
       run: |
         cd build-${{matrix.compiler}}
         lcov --ignore-errors mismatch --ignore-errors gcov,gcov --capture --directory . -o coverage.info
-        lcov --remove coverage.info \
-             '/usr/*' \
-             '*/test/*' \
-             '*/third-party/*' \
-             '*/mock/*' \
-             -o filtered.info
+        lcov --extract coverage.info "*/src/*" -o filtered.info
         lcov --list filtered.info
-
     - name: Upload coverage
       if: matrix.coverage
       uses: actions/upload-artifact@v4
@@ -75,31 +68,3 @@ jobs:
       with:
         name: test-results-${{matrix.compiler}}
         path: build-${{matrix.compiler}}/test_results.xml
-
-  coverage_report:
-    name: Generate Coverage Report
-    needs: [build_and_test]
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-    - name: Download coverage artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: coverage-gcc
-        path: coverage-data
-
-    - name: Install report dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y lcov
-        sudo apt-get install -y libperlio-gzip-perl libjson-perl libcapture-tiny-perl
-
-    - name: Process coverage data
-      run: |
-        lcov --extract coverage-data/filtered.info "*/banking/*" -o result_coverage.info
-
-    - name: Upload to Coveralls
-      uses: coverallsapp/github-action@v2
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: result_coverage.info
