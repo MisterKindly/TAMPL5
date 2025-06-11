@@ -26,11 +26,9 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential cmake clang
-        sudo apt-get install -y libperlio-tiny-perl libperlio-gzip-perl libjson-perl
-        wget https://github.com/linux-test-project/lcov/releases/download/v2.0/lcov-2.0.tar.gz
-        tar xf lcov-2.0.tar.gz
-        sudo make -C lcov-2.0 install
+        sudo apt-get install -y build-essential cmake lcov clang
+        
+        sudo apt-get install -y libperlio-gzip-perl libjson-perl libcapture-tiny-perl
 
     - name: Configure CMake
       run: |
@@ -57,7 +55,12 @@ jobs:
       run: |
         cd build-${{matrix.compiler}}
         lcov --ignore-errors mismatch --ignore-errors gcov,gcov --capture --directory . -o coverage.info
-        lcov --extract coverage.info "*/src/*" -o filtered.info
+        lcov --remove coverage.info \
+             '/usr/*' \
+             '*/test/*' \
+             '*/third-party/*' \
+             '*/mock/*' \
+             -o filtered.info
         lcov --list filtered.info
 
     - name: Upload coverage
@@ -79,12 +82,6 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-        path: src
-
     - name: Download coverage artifacts
       uses: actions/download-artifact@v4
       with:
@@ -95,23 +92,14 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y lcov
-        sudo apt-get install -y libcapture-tiny-perl libperlio-gzip-perl libjson-perl
-    - name: Generate HTML report
+        sudo apt-get install -y libperlio-gzip-perl libjson-perl libcapture-tiny-perl
+
+    - name: Process coverage data
       run: |
-        genhtml coverage-data/filtered.info \
-                --output-directory coverage-report \
-                --source-directory src \
-                --ignore-errors unmapped,source \
-                --prefix $(pwd)
+        lcov --extract coverage-data/filtered.info "*/banking/*" -o result_coverage.info
 
     - name: Upload to Coveralls
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: coverage-data/filtered.info
-
-    - name: Upload coverage report
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-report
-        path: coverage-report
+        path-to-lcov: result_coverage.info
