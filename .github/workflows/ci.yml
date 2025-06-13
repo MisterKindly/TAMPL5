@@ -55,19 +55,24 @@ jobs:
       if: matrix.coverage
       run: |
         cd build-${{matrix.compiler}}
-        
-        gcovr --exclude='.*test.*' \
-              --exclude='.*third-party.*' \
-              --exclude='.*mock.*' \
-              --exclude='.*google.*' \
-              --exclude='.*gtest.*' \
-              --root=$GITHUB_WORKSPACE \
+
+        gcovr -r $GITHUB_WORKSPACE \
+              -f '.*/banking/.*' \
+              --object-directory . \
               --exclude-unreachable-branches \
               --exclude-noncode-lines \
-              --output source_coverage.info
+              --print-summary \
+              --lcov source_coverage.info
+
+        if [ ! -s source_coverage.info ]; then
+          echo "Error: source_coverage.info is empty!"
+          ls -l
+          exit 1
+        fi
         
-        echo "Coverage summary:"
-        gcovr -r $GITHUB_WORKSPACE -f '.*/banking/.*' --object-directory . --print-summary
+        echo "Coverage file content:"
+        head -n 20 source_coverage.info
+        echo "..."
 
     - name: Upload coverage to Coveralls
       if: matrix.coverage
@@ -83,6 +88,12 @@ jobs:
       with:
         name: test-results-${{matrix.compiler}}
         path: build-${{matrix.compiler}}/test_results.xml
+
+    - name: Upload coverage info
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-info-${{matrix.compiler}}
+        path: build-${{matrix.compiler}}/source_coverage.info
 
   coveralls_finalize:
     name: Coveralls Finalize
