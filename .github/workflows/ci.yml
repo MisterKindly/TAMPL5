@@ -13,6 +13,7 @@ jobs:
           - compiler: gcc
             cpp_compiler: g++
             coverage: true
+            build_type: Debug
           - compiler: clang
             cpp_compiler: clang++
             coverage: false
@@ -36,6 +37,7 @@ jobs:
         cmake -H. -B build-${{matrix.compiler}} \
           -D CMAKE_CXX_COMPILER=${{matrix.cpp_compiler}} \
           -D CMAKE_C_COMPILER=${{matrix.compiler}} \
+          -D CMAKE_BUILD_TYPE=${{matrix.build_type}} \
           -D BUILD_TESTS=ON \
           -D TESTS_NAME=tests \
           -D ENABLE_COVERAGE=${{matrix.coverage}} \
