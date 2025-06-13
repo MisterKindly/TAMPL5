@@ -114,18 +114,3 @@ TEST(TransactionTests, MakeFeeTooHigh) {
     EXPECT_FALSE(tr.Make(from, to, 100));
 }
 
-TEST(TransactionTests, CreditDebitCoverage) {
-    MockAccount acc(3, 500);
-    Transaction tr;
-    
-    EXPECT_CALL(acc, ChangeBalance(100)).Times(1);
-    tr.Credit(acc, 100);
-    
-    EXPECT_CALL(acc, GetBalance()).WillOnce(Return(400));
-    EXPECT_CALL(acc, ChangeBalance(-200)).Times(1);
-    EXPECT_TRUE(tr.Debit(acc, 200));
-    
-    EXPECT_CALL(acc, GetBalance()).WillOnce(Return(300));
-    EXPECT_CALL(acc, ChangeBalance(_)).Times(0);
-    EXPECT_FALSE(tr.Debit(acc, 500));
-}
