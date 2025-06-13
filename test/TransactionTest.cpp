@@ -13,6 +13,7 @@ using ::testing::Ref;
 class MockTransaction : public Transaction {
 public:
     MOCK_METHOD(void, SaveToDataBase, (Account& from, Account& to, int sum), (override));
+    void set_fee(int fee) { fee_ = fee; }
 };
 
 TEST(TransactionTests, MakeInvalidAccounts) {
@@ -94,4 +95,21 @@ TEST(TransactionTests, DatabaseSaving)
     
     EXPECT_EQ(output, "1 send to 2 $150\nBalance 1 is 49\nBalance 2 is 400\n");
 
+}
+
+TEST(TransactionTests, MakeFeeTooHigh) {
+    MockAccount from(1, 1000);
+    MockAccount to(2, 2000);
+    MockTransaction tr;
+    tr.set_fee(60);
+
+    EXPECT_CALL(from, Lock()).Times(1);
+    EXPECT_CALL(to, Lock()).Times(1);
+    EXPECT_CALL(from, ChangeBalance(_)).Times(0);
+    EXPECT_CALL(to, ChangeBalance(_)).Times(0);
+    EXPECT_CALL(tr, SaveToDataBase(_, _, _)).Times(0);
+    EXPECT_CALL(from, Unlock()).Times(1);
+    EXPECT_CALL(to, Unlock()).Times(1);
+
+    EXPECT_FALSE(tr.Make(from, to, 100));
 }
