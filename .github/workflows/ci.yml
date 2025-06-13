@@ -63,6 +63,7 @@ jobs:
               --object-directory . \
               --exclude-unreachable-branches \
               --exclude-noncode-lines \
+              --exclude-lines-by-pattern 'assert\(.*\);' \
               --print-summary \
               --lcov source_coverage.info
 
