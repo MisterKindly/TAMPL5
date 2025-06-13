@@ -28,8 +28,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential cmake clang python3-pip
-        sudo apt-get install -y cpanminus libperlio-gzip-perl libjson-perl
-        sudo cpanm -n Capture::Tiny
+        sudo pip install gcovr
         sudo apt-get install -y lcov
 
     - name: Configure CMake
@@ -56,18 +55,20 @@ jobs:
       if: matrix.coverage
       run: |
         cd build-${{matrix.compiler}}
-        lcov --gcov-tool $(which gcov) \
-             --ignore-errors unused \
-             --capture \
-             --directory . \
-             --output-file coverage.info
-        lcov --ignore-errors unused --remove coverage.info \
-             '/usr/*' \
-             '*/test/*' \
-             '*/third-party/*' \
-             '*/mock/*' \
-             -o filtered.info
-        lcov --extract filtered.info "*/banking/*" -o source_coverage.info
+        gcovr --exclude='.*test.*' \
+              --exclude='.*third-party.*' \
+              --exclude='.*mock.*' \
+              --exclude='.*google.*' \
+              --exclude='.*gtest.*' \
+              --root=$GITHUB_WORKSPACE \
+              --xml coverage.xml \
+              --print-summary \
+              --delete
+        
+        gcovr --add-tracefile coverage.xml \
+              --lcov coverage.info
+        
+        lcov --extract coverage.info "*/banking/*" -o source_coverage.info
         lcov --list source_coverage.info
 
     - name: Upload coverage to Coveralls
