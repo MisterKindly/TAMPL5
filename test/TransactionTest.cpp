@@ -101,7 +101,8 @@ TEST(TransactionTests, MakeFeeTooHigh) {
     MockAccount from(1, 1000);
     MockAccount to(2, 2000);
     MockTransaction tr;
-    tr.set_fee(60);
+
+    const int small_sum = 1;
 
     EXPECT_CALL(from, Lock()).Times(1);
     EXPECT_CALL(to, Lock()).Times(1);
@@ -111,5 +112,19 @@ TEST(TransactionTests, MakeFeeTooHigh) {
     EXPECT_CALL(from, Unlock()).Times(1);
     EXPECT_CALL(to, Unlock()).Times(1);
 
-    EXPECT_FALSE(tr.Make(from, to, 100));
+    EXPECT_FALSE(tr.Make(from, to, small_sum));
+}
+
+TEST(TransactionTests, CreditWithNegativeSum) {
+    MockAccount acc(1, 1000);
+    Transaction tr;
+    
+    EXPECT_DEATH(tr.Credit(acc, -100), ".*");
+}
+
+TEST(TransactionTests, DebitWithNegativeSum) {
+    MockAccount acc(1, 1000);
+    Transaction tr;
+    
+    EXPECT_DEATH(tr.Debit(acc, -100), ".*");
 }
