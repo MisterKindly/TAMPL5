@@ -27,11 +27,12 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential cmake clang
-        sudo apt-get install -y cpanminus libperlio-gzip-perl libjson-perl
-        sudo cpanm -n Capture::Tiny
-
-        sudo apt-get install -y lcov
+        sudo apt-get install -y build-essential cmake clang python3-pip
+        sudo pip install gcovr
+        git clone https://github.com/linux-test-project/lcov.git
+        cd lcov
+        sudo make install
+        cd ..
 
     - name: Configure CMake
       run: |
@@ -41,7 +42,7 @@ jobs:
           -D BUILD_TESTS=ON \
           -D TESTS_NAME=tests \
           -D ENABLE_COVERAGE=${{matrix.coverage}} \
-          -D CMAKE_CXX_FLAGS="${{ matrix.coverage && '--coverage -fprofile-abs-path' || '' }}" \
+          -D CMAKE_CXX_FLAGS="${{ matrix.coverage && '--coverage -fprofile-abs-path -fno-inline -fno-inline-small-functions -fno-default-inline' || '' }}" \
           -D CMAKE_EXE_LINKER_FLAGS="${{ matrix.coverage && '--coverage' || '' }}"
 
     - name: Build project
@@ -57,26 +58,21 @@ jobs:
       if: matrix.coverage
       run: |
         cd build-${{matrix.compiler}}
-
-        lcov --ignore-errors unused --capture --directory . \
-             --output-file coverage.info
-
+        geninfo --gcov-tool $(which gcov) \
+                --ignore-errors mismatch,gcov,unused \
+                --branch-coverage \
+                --output-file coverage.info \
+                --no-external \
+                --base-directory $GITHUB_WORKSPACE \
+                .
         lcov --ignore-errors unused --remove coverage.info \
              '/usr/*' \
              '*/test/*' \
              '*/third-party/*' \
              '*/mock/*' \
-             '*/googlemock/*' \
-             '*/googletest/*' \
              -o filtered.info
-
-        lcov --extract filtered.info "*/banking/*" -o extracted.info
-
-        mv extracted.info source_coverage.info
-
+        lcov --extract filtered.info "*/banking/*" -o source_coverage.info
         lcov --list source_coverage.info
-        echo "Files in coverage report:"
-        lcov --list source_coverage.info | grep -E "banking/.*\.(cpp|h)"
 
     - name: Upload coverage to Coveralls
       if: matrix.coverage
