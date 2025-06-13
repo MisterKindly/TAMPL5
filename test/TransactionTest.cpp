@@ -104,7 +104,7 @@ TEST(TransactionTests, MakeFeeTooHigh) {
     tr.set_fee(80);
 
     EXPECT_CALL(from, Lock()).Times(0);
-    EXPECT_CALL(to, Lock()).Times(0;
+    EXPECT_CALL(to, Lock()).Times(0);
     EXPECT_CALL(from, ChangeBalance(_)).Times(0);
     EXPECT_CALL(to, ChangeBalance(_)).Times(0);
     EXPECT_CALL(tr, SaveToDataBase(_, _, _)).Times(0);
