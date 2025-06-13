@@ -61,6 +61,7 @@ jobs:
         gcovr -r $GITHUB_WORKSPACE \
               -f '.*/banking/.*' \
               --object-directory . \
+              --exclude-throw-branches \
               --exclude-unreachable-branches \
               --exclude-noncode-lines \
               --exclude-lines-by-pattern 'assert\(.*\);' \
