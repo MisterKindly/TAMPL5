@@ -28,7 +28,8 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential cmake clang
-        sudo apt-get install -y lcov
+        sudo apt-get install -y python3-pip
+        sudo pip install gcovr
 
     - name: Configure CMake
       run: |
@@ -38,7 +39,7 @@ jobs:
           -D BUILD_TESTS=ON \
           -D TESTS_NAME=tests \
           -D ENABLE_COVERAGE=${{matrix.coverage}} \
-          -D CMAKE_CXX_FLAGS="${{ matrix.coverage && '--coverage -fprofile-abs-path -fno-inline -fno-inline-small-functions -fno-default-inline' || '' }}" \
+          -D CMAKE_CXX_FLAGS="${{ matrix.coverage && '--coverage -fprofile-abs-path' || '' }}" \
           -D CMAKE_EXE_LINKER_FLAGS="${{ matrix.coverage && '--coverage' || '' }}"
 
     - name: Build project
@@ -55,26 +56,18 @@ jobs:
       run: |
         cd build-${{matrix.compiler}}
         
-        lcov --capture \
-             --directory . \
-             --output-file coverage.info \
-             --gcov-tool $(which gcov) \
-             --ignore-errors unused
+        gcovr --exclude='.*test.*' \
+              --exclude='.*third-party.*' \
+              --exclude='.*mock.*' \
+              --exclude='.*google.*' \
+              --exclude='.*gtest.*' \
+              --root=$GITHUB_WORKSPACE \
+              --exclude-unreachable-branches \
+              --exclude-noncode-lines \
+              --output source_coverage.info
         
-        lcov --remove coverage.info \
-             '/usr/*' \
-             '*/test/*' \
-             '*/third-party/*' \
-             '*/mock/*' \
-             '*/googlemock/*' \
-             '*/googletest/*' \
-             -o filtered.info
-        
-        lcov --extract filtered.info "*/banking/*" -o source_coverage.info
-
-        genhtml source_coverage.info --output-directory coverage_report
-        echo "Coverage report generated"
-        lcov --list source_coverage.info
+        echo "Coverage summary:"
+        gcovr -r $GITHUB_WORKSPACE -f '.*/banking/.*' --object-directory . --print-summary
 
     - name: Upload coverage to Coveralls
       if: matrix.coverage
@@ -90,12 +83,6 @@ jobs:
       with:
         name: test-results-${{matrix.compiler}}
         path: build-${{matrix.compiler}}/test_results.xml
-
-    - name: Upload coverage report
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-report-${{matrix.compiler}}
-        path: build-${{matrix.compiler}}/coverage_report
 
   coveralls_finalize:
     name: Coveralls Finalize
