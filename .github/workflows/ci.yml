@@ -28,10 +28,10 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential cmake clang
+        sudo apt-get install -y cpanminus libperlio-gzip-perl libjson-perl
+        sudo cpanm -n Capture::Tiny
 
-        wget https://github.com/linux-test-project/lcov/releases/download/v2.0/lcov-2.0.tar.gz
-        tar xf lcov-2.0.tar.gz
-        sudo make -C lcov-2.0 install
+        sudo apt-get install -y lcov
 
     - name: Configure CMake
       run: |
