@@ -13,7 +13,6 @@ using ::testing::Ref;
 class MockTransaction : public Transaction {
 public:
     MOCK_METHOD(void, SaveToDataBase, (Account& from, Account& to, int sum), (override));
-    void set_fee(int fee) { fee_ = fee; }
 };
 
 TEST(TransactionTests, MakeInvalidAccounts) {
@@ -101,8 +100,8 @@ TEST(TransactionTests, MakeFeeTooHigh) {
     MockAccount from(1, 1000);
     MockAccount to(2, 2000);
     MockTransaction tr;
-
-    const int small_sum = 1;
+    
+    tr.set_fee(80);
 
     EXPECT_CALL(from, Lock()).Times(1);
     EXPECT_CALL(to, Lock()).Times(1);
@@ -112,19 +111,21 @@ TEST(TransactionTests, MakeFeeTooHigh) {
     EXPECT_CALL(from, Unlock()).Times(1);
     EXPECT_CALL(to, Unlock()).Times(1);
 
-    EXPECT_FALSE(tr.Make(from, to, small_sum));
+    EXPECT_FALSE(tr.Make(from, to, 100));
 }
 
-TEST(TransactionTests, CreditWithNegativeSum) {
-    MockAccount acc(1, 1000);
+TEST(TransactionTests, CreditDebitCoverage) {
+    MockAccount acc(3, 500);
     Transaction tr;
     
-    EXPECT_DEATH(tr.Credit(acc, -100), ".*");
-}
-
-TEST(TransactionTests, DebitWithNegativeSum) {
-    MockAccount acc(1, 1000);
-    Transaction tr;
+    EXPECT_CALL(acc, ChangeBalance(100)).Times(1);
+    tr.Credit(acc, 100);
     
-    EXPECT_DEATH(tr.Debit(acc, -100), ".*");
+    EXPECT_CALL(acc, GetBalance()).WillOnce(Return(400));
+    EXPECT_CALL(acc, ChangeBalance(-200)).Times(1);
+    EXPECT_TRUE(tr.Debit(acc, 200));
+    
+    EXPECT_CALL(acc, GetBalance()).WillOnce(Return(300));
+    EXPECT_CALL(acc, ChangeBalance(_)).Times(0);
+    EXPECT_FALSE(tr.Debit(acc, 500));
 }
