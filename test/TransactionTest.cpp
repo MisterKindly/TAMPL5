@@ -108,8 +108,8 @@ TEST(TransactionTests, MakeFeeTooHigh) {
     EXPECT_CALL(from, ChangeBalance(_)).Times(0);
     EXPECT_CALL(to, ChangeBalance(_)).Times(0);
     EXPECT_CALL(tr, SaveToDataBase(_, _, _)).Times(0);
-    EXPECT_CALL(from, Unlock()).Times(1);
-    EXPECT_CALL(to, Unlock()).Times(1);
+    EXPECT_CALL(from, Unlock()).Times(0);
+    EXPECT_CALL(to, Unlock()).Times(0);
 
     EXPECT_FALSE(tr.Make(from, to, 100));
 }
