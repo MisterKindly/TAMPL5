@@ -27,8 +27,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential cmake clang python3-pip
-        sudo pip install gcovr
+        sudo apt-get install -y build-essential cmake clang
         sudo apt-get install -y lcov
 
     - name: Configure CMake
@@ -55,20 +54,26 @@ jobs:
       if: matrix.coverage
       run: |
         cd build-${{matrix.compiler}}
-        gcovr --exclude='.*test.*' \
-              --exclude='.*third-party.*' \
-              --exclude='.*mock.*' \
-              --exclude='.*google.*' \
-              --exclude='.*gtest.*' \
-              --root=$GITHUB_WORKSPACE \
-              --xml coverage.xml \
-              --print-summary \
-              --delete
         
-        gcovr --add-tracefile coverage.xml \
-              --lcov coverage.info
+        lcov --capture \
+             --directory . \
+             --output-file coverage.info \
+             --gcov-tool $(which gcov) \
+             --ignore-errors unused
         
-        lcov --extract coverage.info "*/banking/*" -o source_coverage.info
+        lcov --remove coverage.info \
+             '/usr/*' \
+             '*/test/*' \
+             '*/third-party/*' \
+             '*/mock/*' \
+             '*/googlemock/*' \
+             '*/googletest/*' \
+             -o filtered.info
+        
+        lcov --extract filtered.info "*/banking/*" -o source_coverage.info
+
+        genhtml source_coverage.info --output-directory coverage_report
+        echo "Coverage report generated"
         lcov --list source_coverage.info
 
     - name: Upload coverage to Coveralls
@@ -85,6 +90,12 @@ jobs:
       with:
         name: test-results-${{matrix.compiler}}
         path: build-${{matrix.compiler}}/test_results.xml
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-${{matrix.compiler}}
+        path: build-${{matrix.compiler}}/coverage_report
 
   coveralls_finalize:
     name: Coveralls Finalize
