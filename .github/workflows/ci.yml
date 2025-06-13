@@ -22,6 +22,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         submodules: recursive
+        fetch-depth: 0
 
     - name: Install dependencies
       run: |
@@ -57,18 +58,55 @@ jobs:
       run: |
         cd build-${{matrix.compiler}}
         lcov --ignore-errors mismatch --ignore-errors gcov,gcov --capture --directory . -o coverage.info
-        lcov --extract coverage.info "*/src/*" -o filtered.info
-        lcov --list filtered.info
+        
+
+        lcov --remove coverage.info \
+            '/usr/*' \
+            '*/test/*' \
+            '*/third-party/*' \
+            '*/tests/*' \
+            '*/googletest/*' \
+            '*/googlemock/*' \
+            '*/gmock/*' \
+            '*/gtest/*' \
+            -o filtered.info
+        
+
+        lcov --extract filtered.info "*/banking/*" -o final.info
+
+        lcov --extract final.info \
+            "*.cpp" \
+            "*.c" \
+            "*.hpp" \
+            "*.h" \
+            -o source_coverage.info
+        
+        lcov --list source_coverage.info
+        echo "Coverage files:"
+        find . -name "*.gcno" -o -name "*.gcda"
 
     - name: Upload coverage to Coveralls
       if: matrix.coverage
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: build-${{matrix.compiler}}/filtered.info
+        path-to-lcov: build-${{matrix.compiler}}/source_coverage.info
+        parallel: true
+        flag-name: gcc-run
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
       with:
         name: test-results-${{matrix.compiler}}
         path: build-${{matrix.compiler}}/test_results.xml
+
+  coveralls_finalize:
+    name: Coveralls Finalize
+    needs: build_and_test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Finalize Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel-finished: true
