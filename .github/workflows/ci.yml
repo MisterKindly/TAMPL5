@@ -28,11 +28,9 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential cmake clang python3-pip
-        sudo pip install gcovr
-        git clone https://github.com/linux-test-project/lcov.git
-        cd lcov
-        sudo make install
-        cd ..
+        sudo apt-get install -y cpanminus libperlio-gzip-perl libjson-perl
+        sudo cpanm -n Capture::Tiny
+        sudo apt-get install -y lcov
 
     - name: Configure CMake
       run: |
@@ -58,13 +56,11 @@ jobs:
       if: matrix.coverage
       run: |
         cd build-${{matrix.compiler}}
-        geninfo --gcov-tool $(which gcov) \
-                --ignore-errors mismatch,gcov,unused \
-                --branch-coverage \
-                --output-file coverage.info \
-                --no-external \
-                --base-directory $GITHUB_WORKSPACE \
-                .
+        lcov --gcov-tool $(which gcov) \
+             --ignore-errors unused \
+             --capture \
+             --directory . \
+             --output-file coverage.info
         lcov --ignore-errors unused --remove coverage.info \
              '/usr/*' \
              '*/test/*' \
