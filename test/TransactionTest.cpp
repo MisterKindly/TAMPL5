@@ -114,3 +114,23 @@ TEST(TransactionTests, MakeFeeTooHigh) {
     EXPECT_FALSE(tr.Make(from, to, 100));
 }
 
+TEST(TransactionRealAccount, CreditAndDebitWithRealAccounts) {
+    Account from(1, 1000);
+    Account to(2, 2000);
+    Transaction tr;
+    
+    tr.Make(from, to, 100);  
+    
+    EXPECT_EQ(to.GetBalance(), 2100); 
+}
+
+TEST(TransactionRealAccount, DebitSuccessWithRealAccount) {
+    Account from(1, 1000);
+    Account to(2, 2000);
+    Transaction tr;
+    
+    bool result = tr.Make(from, to, 500); 
+    
+    EXPECT_TRUE(result);
+    EXPECT_EQ(from.GetBalance(), 499);
+}
