@@ -36,7 +36,7 @@ jobs:
           -D BUILD_TESTS=ON \
           -D TESTS_NAME=tests \
           -D ENABLE_COVERAGE=${{matrix.coverage}} \
-          -D CMAKE_CXX_FLAGS="${{ matrix.coverage && '--coverage -fprofile-abs-path -O0' || '' }}" \
+          -D CMAKE_CXX_FLAGS="${{ matrix.coverage && '--coverage -fprofile-abs-path -O0 -fno-exceptions -fno-rtti' || '' }}" \
           -D CMAKE_EXE_LINKER_FLAGS="${{ matrix.coverage && '--coverage' || '' }}"
 
     - run: |
@@ -49,9 +49,9 @@ jobs:
     - if: matrix.coverage
       run: |
         cd build-${{matrix.compiler}}
-        lcov --ignore-errors all --capture --directory . -o coverage.info
-        lcov --extract coverage.info "*/banking/*" "*/src/Transaction.h" -o filtered_coverage.info
-        genhtml filtered_coverage.info --output-directory coverage_report --ignore-errors source
+        lcov --rc lcov_branch_coverage=0 --ignore-errors mismatch,gcov --capture --directory . -o coverage.info
+        lcov --rc lcov_branch_coverage=0 --extract coverage.info "*/banking/*" "*/src/Transaction.h" -o filtered_coverage.info
+        genhtml --ignore-errors source filtered_coverage.info --output-directory coverage_report
 
     - if: matrix.coverage
       uses: coverallsapp/github-action@v2
@@ -85,38 +85,15 @@ jobs:
         cmake -S . -B build_windows `
           -D BUILD_TESTS=ON `
           -D TESTS_NAME=tests `
-          -D ENABLE_COVERAGE=true `
+          -D ENABLE_COVERAGE=false `
           -D gtest_force_shared_crt=ON
 
     - run: |
         cmake --build build_windows --config Release
 
-    - run: choco install opencppcoverage -y
-
     - run: |
-        $coverageTool = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
-        $testExe = (Get-ChildItem -Path "build_windows\Release\tests.exe").FullName
-        & "$coverageTool" `
-          --sources "banking\*.cpp" `
-          --sources "src\Transaction.h" `
-          --export_type=cobertura:coverage.xml `
-          -- "$testExe"
-
-    - run: |
-        python -m pip install gcovr
-
-    - run: |
-        gcovr -r $env:GITHUB_WORKSPACE `
-              --add-tracefile coverage.xml `
-              --exclude-unreachable-branches `
-              --lcov coverage_windows.info
-
-    - uses: coverallsapp/github-action@v2
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: coverage_windows.info
-        parallel: true
-        flag-name: windows-msvc
+        cd build_windows/Release
+        .\tests.exe --gtest_output=xml:test_results.xml
 
     - uses: actions/upload-artifact@v4
       with:
@@ -127,7 +104,6 @@ jobs:
     name: Coveralls Finalize
     needs: 
       - linux_build_test
-      - windows_build_test
     runs-on: ubuntu-latest
     steps:
     - uses: coverallsapp/github-action@v2
