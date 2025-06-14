@@ -1,4 +1,4 @@
-[![Coverage Status](https://coveralls.io/repos/github/MisterKindly/TAMPL5/badge.svg?branch=main)](https://coveralls.io/github/MisterKindly/TAMPL5?branch=main) 
+
 
 ## Laboratory work V
 
