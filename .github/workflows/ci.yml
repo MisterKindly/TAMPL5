@@ -28,9 +28,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential cmake clang
-        sudo apt-get install -y python3-pip
-        sudo pip install gcovr
+        sudo apt-get install -y build-essential cmake clang lcov
 
     - name: Configure CMake
       run: |
@@ -53,37 +51,24 @@ jobs:
         cd build-${{matrix.compiler}}
         ./tests --gtest_output=xml:test_results.xml
 
-    - name: Generate coverage (for GCC)
+    - name: Generate coverage with lcov
       if: matrix.coverage
       run: |
         cd build-${{matrix.compiler}}
-
-        gcovr -r $GITHUB_WORKSPACE \
-              -f '.*/banking/.*' \
-              --object-directory . \
-              --exclude-throw-branches \
-              --exclude-unreachable-branches \
-              --exclude-noncode-lines \
-              --exclude-lines-by-pattern 'assert\(.*\);' \
-              --print-summary \
-              --lcov source_coverage.info
-
-        if [ ! -s source_coverage.info ]; then
-          echo "Error: source_coverage.info is empty!"
-          ls -l
-          exit 1
-        fi
         
-        echo "Coverage file content:"
-        head -n 20 source_coverage.info
-        echo "..."
+        lcov --ignore-errors mismatch --ignore-errors gcov,gcov --capture --directory . -o coverage.info || lcov --ignore-errors gcov --capture --directory . -o coverage.info
+        
+        lcov --extract coverage.info "*/banking/*" -o filtered_coverage.info
+        
+        genhtml filtered_coverage.info --output-directory coverage_report
+        echo "Coverage report generated at: $(pwd)/coverage_report/index.html"
 
     - name: Upload coverage to Coveralls
       if: matrix.coverage
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: build-${{matrix.compiler}}/source_coverage.info
+        path-to-lcov: build-${{matrix.compiler}}/filtered_coverage.info
         parallel: true
         flag-name: gcc-run
 
@@ -93,11 +78,12 @@ jobs:
         name: test-results-${{matrix.compiler}}
         path: build-${{matrix.compiler}}/test_results.xml
 
-    - name: Upload coverage info
+    - name: Upload coverage report
+      if: matrix.coverage
       uses: actions/upload-artifact@v4
       with:
-        name: coverage-info-${{matrix.compiler}}
-        path: build-${{matrix.compiler}}/source_coverage.info
+        name: coverage-report-${{matrix.compiler}}
+        path: build-${{matrix.compiler}}/coverage_report
 
   coveralls_finalize:
     name: Coveralls Finalize
