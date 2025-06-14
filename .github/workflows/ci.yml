@@ -86,55 +86,55 @@ jobs:
         path: build-${{matrix.compiler}}/coverage_report
 
   windows_build_test:
-  name: Build and Test on Windows
-  runs-on: windows-latest
-  steps:
-  - name: Checkout code
-    uses: actions/checkout@v4
-    with:
-      submodules: recursive
-      fetch-depth: 0
+    name: Build and Test on Windows
+    runs-on: windows-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
 
-  - name: Configure CMake
-    run: |
-      cmake -S . -B build_windows `
-        -D BUILD_TESTS=ON `
-        -D TESTS_NAME=tests `
-        -D ENABLE_COVERAGE=true `
-        -D gtest_force_shared_crt=ON
+    - name: Configure CMake
+      run: |
+        cmake -S . -B build_windows `
+          -D BUILD_TESTS=ON `
+          -D TESTS_NAME=tests `
+          -D ENABLE_COVERAGE=true `
+          -D gtest_force_shared_crt=ON
 
-  - name: Build project
-    run: |
-      cmake --build build_windows --config Release
+    - name: Build project
+      run: |
+        cmake --build build_windows --config Release
 
-  - name: Install OpenCppCoverage
-    run: |
-      choco install opencppcoverage -y
+    - name: Install OpenCppCoverage
+      run: |
+        choco install opencppcoverage -y
 
-  - name: Run tests with coverage
-    run: |
-      $coverageTool = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
-      $testExe = Resolve-Path "build_windows\Release\tests.exe"
-      & $coverageTool `
-        --sources "banking\*.cpp" `
-        --sources "banking\*.h" `  # Добавляем заголовочные файлы
-        --export_type=cobertura:coverage.xml `
-        -- $testExe
+    - name: Run tests with coverage
+      run: |
+        $coverageTool = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
+        $testExe = Resolve-Path "build_windows\Release\tests.exe"
+        & $coverageTool `
+          --sources "banking\*.cpp" `
+          --sources "banking\*.h" `  # Добавляем заголовочные файлы
+          --export_type=cobertura:coverage.xml `
+          -- $testExe
 
-  - name: Convert to LCOV format
-    uses: dschueler/cobertura-action@v2
-    with:
-      files: 'coverage.xml'
-      format: 'lcov'
-      output: 'coverage_windows.info'
+    - name: Convert to LCOV format
+      uses: dschueler/cobertura-action@v2
+      with:
+        files: 'coverage.xml'
+        format: 'lcov'
+        output: 'coverage_windows.info'
 
-  - name: Upload Windows coverage
-    uses: coverallsapp/github-action@v2
-    with:
-      github-token: ${{ secrets.GITHUB_TOKEN }}
-      path-to-lcov: coverage_windows.info
-      parallel: true
-      flag-name: windows-msvc
+    - name: Upload Windows coverage
+      uses: coverallsapp/github-action@v2
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path-to-lcov: coverage_windows.info
+        parallel: true
+        flag-name: windows-msvc
 
   coveralls_finalize:
     name: Coveralls Finalize
