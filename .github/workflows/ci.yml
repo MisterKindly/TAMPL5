@@ -59,7 +59,10 @@ jobs:
         lcov --ignore-errors mismatch --ignore-errors gcov,gcov --capture --directory . -o coverage.info || lcov --ignore-errors gcov --capture --directory . -o coverage.info
         
         lcov --extract coverage.info "*/banking/*" -o filtered_coverage.info
-        
+
+        lcov --extract coverage.info "*/banking/Transaction.h" -o transaction_header.info
+        lcov --add filtered_coverage.info --add transaction_header.info -o combined_coverage.info
+
         genhtml filtered_coverage.info --output-directory coverage_report
         echo "Coverage report generated at: $(pwd)/coverage_report/index.html"
 
@@ -68,7 +71,7 @@ jobs:
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: build-${{matrix.compiler}}/filtered_coverage.info
+        path-to-lcov: build-${{matrix.compiler}}/combined_coverage.info
         parallel: true
         flag-name: gcc-run
 
@@ -84,6 +87,42 @@ jobs:
       with:
         name: coverage-report-${{matrix.compiler}}
         path: build-${{matrix.compiler}}/coverage_report
+
+  windows_build_test:
+    name: Build and Test on Windows
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Configure CMake
+      run: |
+        cmake -H. -B build_windows `
+          -D BUILD_TESTS=ON `
+          -D TESTS_NAME=tests `
+          -D ENABLE_COVERAGE=false `
+          -D gtest_force_shared_crt=ON
+
+    - name: Build project
+      run: |
+        cmake --build build_windows --config Release
+
+    - name: Run tests
+      run: |
+        cd build_windows/Release
+        .\tests.exe --gtest_output=xml:test_results.xml
+
+    - name: Upload Windows test results
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-windows
+        path: build_windows/Release/test_results.xml
 
   coveralls_finalize:
     name: Coveralls Finalize
